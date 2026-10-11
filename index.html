@@ -11,11 +11,28 @@
 </head>
 <body>
   <main class="app">
-    <header class="page-header">
+    <header class="page-header" id="master-header">
       <h1>Доска задач</h1>
+      <button id="view-client" class="secondary-button" type="button">👁️ Вид для клиента (Онлайн-запись)</button>
+      <div class="view-switch" role="group" aria-label="Вид записей"><button id="view-board" type="button" aria-pressed="true" aria-controls="board">📋 Доска</button><button id="view-calendar" type="button" aria-pressed="false" aria-controls="calendar-view">📅 Календарь</button></div>
       <div class="header-actions"><div class="scroll-controls"><button id="scroll-left" type="button" aria-label="Прокрутить доску влево">←</button><button id="scroll-right" type="button" aria-label="Прокрутить доску вправо">→</button></div><button class="theme-toggle" id="theme-toggle" type="button" aria-label="Включить тёмную тему" aria-pressed="false" title="Переключить тему"><span id="theme-icon" aria-hidden="true">☾</span></button><div class="file-menu-wrap"><button class="file-menu-trigger" id="file-menu-trigger" type="button" aria-haspopup="true" aria-expanded="false">Файл <span aria-hidden="true">⌄</span></button><div class="file-menu" id="file-menu" hidden><button type="button" id="file-load">Загрузить</button><button type="button" id="file-save">Сохранить</button></div></div></div>
     </header>
     <section class="board" id="board" aria-label="Доска с колонками" tabindex="0"></section>
+    <section id="calendar-view" class="calendar-view" aria-label="Календарь записей" hidden>
+      <div class="calendar-toolbar"><h2 id="calendar-month" aria-live="polite"></h2><div class="calendar-controls"><button id="calendar-today" type="button">Сегодня</button><button id="calendar-prev" type="button" aria-label="Предыдущий месяц">←</button><button id="calendar-next" type="button" aria-label="Следующий месяц">→</button></div></div>
+      <p class="calendar-hint">Нажмите на день, чтобы посмотреть свободное время и добавить запись, или на запись, чтобы изменить её.</p>
+      <p id="calendar-summary" class="calendar-summary" role="status"></p>
+      <div class="calendar-scroll"><div class="calendar-weekdays" aria-hidden="true"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div><div id="calendar-grid" class="calendar-grid"></div></div>
+    </section>
+    <section id="client-view" class="client-view" hidden aria-labelledby="client-title">
+      <div class="client-header"><div><p class="client-eyebrow">Запись без звонка · 08:00–18:00</p><h1 id="client-title" tabindex="-1">Онлайн-запись к мастеру</h1></div><button id="client-back" class="secondary-button" type="button">← Вернуться к мастеру</button></div>
+      <form id="client-form" class="client-booking-form">
+        <section class="client-step"><h2><span>1</span> Выберите услугу</h2><label for="client-service">Название услуги</label><input id="client-service" name="service" list="client-services" maxlength="200" required placeholder="Выберите из подсказок или введите услугу" autocomplete="off"><datalist id="client-services"></datalist><label for="client-duration">Длительность услуги</label><select id="client-duration" name="duration"><option value="30">30 мин</option><option value="45">45 мин</option><option value="60" selected>1 час</option><option value="90">1.5 часа</option><option value="120">2 часа</option><option value="150">2.5 часа</option><option value="180">3 часа</option></select></section>
+        <section class="client-step"><h2><span>2</span> Выберите дату и время</h2><label for="client-date">Дата визита</label><input id="client-date" name="date" type="date" max="9999-12-31" required><p id="client-slots-hint" class="client-hint" role="status"></p><div id="client-slots" class="client-slots" role="group" aria-label="Свободное время начала"></div></section>
+        <section id="client-contact" class="client-step" hidden><h2><span>3</span> Ваши контакты</h2><p id="client-selection" class="client-selection"></p><label for="client-name">Имя</label><input id="client-name" name="clientName" autocomplete="name" maxlength="200" required placeholder="Как к вам обращаться?"><label for="client-phone">Телефон</label><input id="client-phone" name="phone" type="tel" autocomplete="tel" maxlength="50" required placeholder="+7 (999) 123-45-67"><button id="client-submit" class="primary-button" type="submit">Записаться</button></section>
+        <p id="client-error" class="form-error" role="alert"></p><p id="client-success" class="client-success" role="status" tabindex="-1" hidden></p>
+      </form>
+    </section>
     <p class="sr-only" id="announcement" role="status" aria-live="polite"></p>
     <p class="sr-only" id="storage-label" role="status" aria-live="polite"></p>
   </main>
@@ -24,14 +41,49 @@
     <form id="card-form">
       <div class="dialog-header"><h2 id="dialog-title">Новая карточка</h2><button class="close-button" id="close-dialog" type="button" aria-label="Закрыть форму">×</button></div>
       <p class="dialog-context" id="dialog-context"></p>
-      <label for="card-title">Название <span aria-hidden="true">*</span></label>
-      <input id="card-title" name="title" placeholder="Что нужно сделать?" required maxlength="200" autocomplete="off">
+      <div id="card-column-field" hidden><label for="card-column">Колонка доски</label><select id="card-column" name="column"></select></div>
+      <label for="card-client">Имя клиента</label>
+      <input id="card-client" name="clientName" placeholder="Например, Анна Иванова" maxlength="200" autocomplete="name">
+      <label for="card-status">Статус записи</label>
+      <select id="card-status" name="status"><option value="new">Новая</option><option value="confirmed">Подтверждена</option><option value="completed">Завершено</option></select>
+      <label for="card-phone">Телефон</label>
+      <input id="card-phone" name="phone" type="tel" placeholder="+7 (999) 123-45-67" maxlength="50" autocomplete="tel">
+      <div class="booking-form-row">
+        <div><label for="card-date">Дата</label><input id="card-date" name="date" type="date" max="9999-12-31"></div>
+        <div><label for="card-time">Время</label><select id="card-time" name="time" aria-describedby="working-hours-hint time-selection-note time-conflict"><option value="">Без времени</option></select><p id="time-conflict" class="time-conflict" role="status" aria-live="polite" hidden></p></div>
+      </div>
+      <p id="working-hours-hint" class="booking-end">Рабочая смена: 08:00–18:00. Время начала зависит от длительности услуги.</p>
+      <p id="time-selection-note" class="booking-end" role="status"></p>
+      <label for="card-duration">Длительность услуги</label>
+      <select id="card-duration" name="duration" aria-describedby="booking-end"><option value="30">30 мин</option><option value="45">45 мин</option><option value="60" selected>1 час</option><option value="90">1.5 часа</option><option value="120">2 часа</option><option value="150">2.5 часа</option><option value="180">3 часа</option></select>
+      <p id="booking-end" class="booking-end" aria-live="polite"></p>
+      <label for="card-service">Название услуги</label>
+      <input id="card-service" name="service" placeholder="Например, стрижка и укладка" maxlength="200" autocomplete="off">
+      <label for="card-title">Название карточки (необязательно)</label>
+      <input id="card-title" name="title" placeholder="По умолчанию — имя клиента или услуга" maxlength="200" autocomplete="off">
       <label for="card-description">Описание</label>
       <textarea id="card-description" name="description" rows="5" placeholder="Детали, заметки или следующий шаг"></textarea>
       <label for="card-color">Цвет карточки</label><div class="color-picker-row"><input id="card-color" name="color" type="color" value="#818cf8"><span>Или выберите оттенок из палитры.</span></div><div class="color-palette" id="card-palette" role="group" aria-label="Палитра карточки"></div>
       <p class="form-error" id="form-error" role="alert"></p>
       <div class="dialog-actions dialog-actions-edit"><button class="danger-button icon-delete" id="delete-card" type="button" aria-label="Удалить карточку" title="Удалить карточку" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 4v6m4-6v6"/></svg></button><span class="action-spacer"></span><button class="secondary-button" id="cancel-dialog" type="button">Отмена</button><button class="primary-button" id="save-card" type="submit">Создать</button></div>
     </form>
+  </dialog>
+  <dialog id="day-dialog" aria-labelledby="day-title">
+    <div class="day-content">
+      <div class="dialog-header"><h2 id="day-title">Расписание дня</h2><button id="close-day" class="close-button" type="button" aria-label="Закрыть расписание дня">×</button></div>
+      <p id="day-summary" class="day-summary" role="status"></p>
+      <p class="day-hint">Рабочая смена: 08:00–18:00. Каждое окошко — 30 минут. Выберите свободное начало или нажмите на занятую запись. Услуга должна завершиться не позднее 18:00.</p>
+      <button id="day-create" class="primary-button" type="button">Добавить запись на другое время</button>
+      <div id="day-schedule" class="day-schedule" aria-label="Расписание по часам"></div>
+    </div>
+  </dialog>
+  <dialog id="contact-dialog" aria-labelledby="contact-title">
+    <div class="contact-content">
+      <div class="dialog-header"><h2 id="contact-title">Связаться с клиентом</h2><button class="close-button" id="close-contact" type="button" aria-label="Закрыть выбор способа связи">×</button></div>
+      <p id="contact-phone" class="contact-number"></p>
+      <div class="contact-actions"><a id="contact-whatsapp" class="contact-link" target="_blank" rel="noopener noreferrer">WhatsApp <span aria-hidden="true">↗</span></a><a id="contact-max" class="contact-link" href="https://web.max.ru/" target="_blank" rel="noopener noreferrer">MAX <span aria-hidden="true">↗</span></a><a id="contact-call" class="contact-link">Позвонить <span aria-hidden="true">↗</span></a></div>
+      <p class="contact-hint">В MAX найдите клиента по номеру телефона. Кнопка открывает веб-версию мессенджера.</p>
+    </div>
   </dialog>
   <dialog id="column-dialog" aria-labelledby="column-dialog-title">
     <form id="column-form">
